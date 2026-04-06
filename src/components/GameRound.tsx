@@ -1,18 +1,20 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { generateQuestion, Subject, subjectInfo, Question } from "@/lib/questions";
+import { Difficulty, DIFFICULTY_INFO } from "@/lib/rankings";
 
 interface Props {
   subject: Subject;
+  difficulty: Difficulty;
   onFinish: (score: number, total: number, avgTime: number) => void;
   onBack: () => void;
 }
 
 const ROUND_QUESTIONS = 10;
 
-export default function GameRound({ subject, onFinish, onBack }: Props) {
+export default function GameRound({ subject, difficulty, onFinish, onBack }: Props) {
   const [qIndex, setQIndex] = useState(0);
-  const [question, setQuestion] = useState<Question>(() => generateQuestion(subject));
+  const [question, setQuestion] = useState<Question>(() => generateQuestion(subject, difficulty));
   const [input, setInput] = useState("");
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
@@ -37,7 +39,7 @@ export default function GameRound({ subject, onFinish, onBack }: Props) {
     }
 
     setTimeout(() => {
-      setQuestion(generateQuestion(subject));
+      setQuestion(generateQuestion(subject, difficulty));
       setQIndex(q => q + 1);
       setInput("");
       setFeedback(null);
@@ -45,7 +47,7 @@ export default function GameRound({ subject, onFinish, onBack }: Props) {
       setTimes(newTimes);
       if (correct) setScore(newScore);
     }, 600);
-  }, [startTime, times, score, qIndex, subject, onFinish]);
+  }, [startTime, times, score, qIndex, subject, difficulty, onFinish]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +64,6 @@ export default function GameRound({ subject, onFinish, onBack }: Props) {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4">
-      {/* Header */}
       <div className="w-full max-w-lg mb-8">
         <div className="flex items-center justify-between mb-3">
           <button onClick={onBack} className="text-muted-foreground hover:text-foreground transition-colors text-sm font-mono">
@@ -71,10 +72,10 @@ export default function GameRound({ subject, onFinish, onBack }: Props) {
           <div className="flex items-center gap-2">
             <span className="text-xl">{info.emoji}</span>
             <span className="font-display font-semibold text-foreground">{info.label}</span>
+            <span className="px-2 py-0.5 rounded text-xs font-mono bg-secondary text-muted-foreground">{DIFFICULTY_INFO[difficulty].emoji} {DIFFICULTY_INFO[difficulty].label}</span>
           </div>
           <span className="font-mono text-accent font-bold">{score}/{qIndex}</span>
         </div>
-        {/* Progress bar */}
         <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-primary rounded-full"
@@ -85,7 +86,6 @@ export default function GameRound({ subject, onFinish, onBack }: Props) {
         </div>
       </div>
 
-      {/* Question Card */}
       <AnimatePresence mode="wait">
         <motion.div
           key={qIndex}
