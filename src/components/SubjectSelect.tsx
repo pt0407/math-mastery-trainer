@@ -2,12 +2,14 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Subject, subjectInfo } from "@/lib/questions";
 import { Difficulty, DIFFICULTY_INFO, loadStats } from "@/lib/rankings";
+import { loadProfile, getEloTier } from "@/lib/elo";
 import RankBadge from "./RankBadge";
 
-export type GameMode = 'practice' | 'vsbot' | 'stepbystep';
+export type GameMode = 'practice' | 'vsbot' | 'stepbystep' | 'tournament';
 
 interface Props {
   onStart: (subject: Subject, difficulty: Difficulty, mode: GameMode) => void;
+  onStats: () => void;
 }
 
 const subjects: Subject[] = ['basic', 'algebra', 'algebra2', 'geometry', 'chemistry'];
@@ -15,14 +17,18 @@ const difficulties: Difficulty[] = ['easy', 'medium', 'hard'];
 const modes: { key: GameMode; label: string; emoji: string; desc: string }[] = [
   { key: 'practice', label: 'Practice', emoji: '🎯', desc: 'Solo rounds for points' },
   { key: 'vsbot', label: 'VS Bot', emoji: '🤖', desc: 'Race against AI' },
+  { key: 'tournament', label: 'Tournament', emoji: '🏆', desc: 'Bracket competition' },
   { key: 'stepbystep', label: 'Step-by-Step', emoji: '📝', desc: 'Learn the process' },
 ];
 
-export default function SubjectSelect({ onStart }: Props) {
+export default function SubjectSelect({ onStart, onStats }: Props) {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [mode, setMode] = useState<GameMode>('practice');
   const stats = loadStats();
+  const profile = loadProfile();
+  const overallElo = Math.round((profile.elo.practice + profile.elo.vsbot + profile.elo.tournament) / 3);
+  const tier = getEloTier(overallElo);
 
   const handleGo = () => {
     if (selectedSubject) onStart(selectedSubject, difficulty, mode);
@@ -46,9 +52,22 @@ export default function SubjectSelect({ onStart }: Props) {
         Train your mental math. Pick a subject.
       </motion.p>
 
-      {/* Rank display */}
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mb-8">
+      {/* Rank + Stats button */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mb-6 flex items-center gap-4">
         <RankBadge stats={stats} />
+        <button
+          onClick={onStats}
+          className="px-4 py-2 rounded-lg bg-card border border-border hover:border-primary/50 transition-colors font-mono text-sm text-muted-foreground hover:text-foreground"
+        >
+          📊 Stats
+        </button>
+      </motion.div>
+
+      {/* ELO display */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }} className="mb-8 flex items-center gap-2">
+        <span className="text-sm">{tier.emoji}</span>
+        <span className="font-mono font-bold" style={{ color: tier.color }}>{overallElo}</span>
+        <span className="text-xs text-muted-foreground font-mono">{tier.label}</span>
       </motion.div>
 
       {/* Subject grid */}
@@ -78,7 +97,7 @@ export default function SubjectSelect({ onStart }: Props) {
         })}
       </div>
 
-      {/* Config panel - shown after subject selected */}
+      {/* Config panel */}
       <AnimatePresence>
         {selectedSubject && (
           <motion.div
@@ -110,12 +129,12 @@ export default function SubjectSelect({ onStart }: Props) {
             {/* Mode */}
             <div className="mb-6">
               <p className="text-sm text-muted-foreground font-mono mb-2">Mode</p>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {modes.map(m => (
                   <button
                     key={m.key}
                     onClick={() => setMode(m.key)}
-                    className={`flex-1 p-3 rounded-lg border text-center transition-colors ${
+                    className={`p-3 rounded-lg border text-center transition-colors ${
                       mode === m.key
                         ? 'bg-primary/10 border-primary'
                         : 'bg-card border-border hover:border-primary/50'
