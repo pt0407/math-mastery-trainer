@@ -2,43 +2,41 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { generateQuestion, Subject, subjectInfo, Question } from "@/lib/questions";
 import { Difficulty, DIFFICULTY_INFO } from "@/lib/rankings";
+import { Bot } from "@/lib/bots";
+import { getEloTier } from "@/lib/elo";
+import MultipleChoice from "./MultipleChoice";
 
 interface Props {
   subject: Subject;
   difficulty: Difficulty;
+  opponent: Bot;
   onFinish: (playerScore: number, botScore: number, total: number, avgTime: number, won: boolean) => void;
   onBack: () => void;
 }
 
 const ROUND_QUESTIONS = 10;
 
-function getBotSpeed(difficulty: Difficulty): { min: number; max: number } {
-  switch (difficulty) {
-    case 'easy': return { min: 4, max: 8 };
-    case 'medium': return { min: 2.5, max: 5.5 };
-    case 'hard': return { min: 1.2, max: 3.5 };
-  }
-}
-
-export default function VsBotMode({ subject, difficulty, onFinish, onBack }: Props) {
+export default function VsBotMode({ subject, difficulty, opponent, onFinish, onBack }: Props) {
   const [qIndex, setQIndex] = useState(0);
   const [question, setQuestion] = useState<Question>(() => generateQuestion(subject, difficulty));
-  const [input, setInput] = useState("");
   const [playerScore, setPlayerScore] = useState(0);
   const [botScore, setBotScore] = useState(0);
   const [feedback, setFeedback] = useState<'player' | 'bot' | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
   const [startTime, setStartTime] = useState(Date.now());
   const [times, setTimes] = useState<number[]>([]);
   const [botProgress, setBotProgress] = useState(0);
   const botTimerRef = useRef<number | null>(null);
   const botTimeTarget = useRef(0);
   const animFrameRef = useRef<number | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
   const info = subjectInfo[subject];
+  const opponentTier = getEloTier(opponent.elo);
 
   const startBotTimer = useCallback(() => {
-    const speed = getBotSpeed(difficulty);
-    const botTime = speed.min + Math.random() * (speed.max - speed.min);
+    // Bot speed based on opponent stats
+    const baseSpeed = opponent.avgSpeed;
+    const variance = baseSpeed * 0.3;
+    const botTime = baseSpeed - variance + Math.random() * variance * 2;
     botTimeTarget.current = botTime;
     const start = Date.now();
     setBotProgress(0);
@@ -54,22 +52,18 @@ export default function VsBotMode({ subject, difficulty, onFinish, onBack }: Pro
     animFrameRef.current = requestAnimationFrame(animate);
 
     botTimerRef.current = window.setTimeout(() => {
-      // Bot answers
       setBotProgress(1);
-      // Bot has ~85% accuracy on easy, ~75% medium, ~90% hard (it's smarter on hard)
-      const botAccuracy = difficulty === 'easy' ? 0.85 : difficulty === 'medium' ? 0.75 : 0.9;
-      const botCorrect = Math.random() < botAccuracy;
+      const botCorrect = Math.random() < opponent.accuracy;
       if (botCorrect) {
         setFeedback('bot');
         setBotScore(s => s + 1);
       }
       advanceQuestion(false, botCorrect);
     }, botTime * 1000);
-  }, [difficulty]);
+  }, [opponent]);
 
   useEffect(() => {
     startBotTimer();
-    inputRef.current?.focus();
     return () => {
       if (botTimerRef.current) clearTimeout(botTimerRef.current);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
@@ -91,7 +85,7 @@ export default function VsBotMode({ subject, difficulty, onFinish, onBack }: Pro
     setTimeout(() => {
       setQuestion(generateQuestion(subject, difficulty));
       setQIndex(q => q + 1);
-      setInput("");
+      setSelected(null);
       setFeedback(null);
       setStartTime(Date.now());
       setTimes(newTimes);
@@ -99,24 +93,21 @@ export default function VsBotMode({ subject, difficulty, onFinish, onBack }: Pro
     }, 800);
   }, [startTime, times, playerScore, botScore, qIndex, subject, difficulty, onFinish]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSelect = (value: number) => {
     if (feedback) return;
-    const parsed = parseFloat(input);
-    if (isNaN(parsed)) return;
+    setSelected(value);
 
     // Cancel bot timer - player answered first
     if (botTimerRef.current) clearTimeout(botTimerRef.current);
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
 
-    const correct = parsed === question.answer;
+    const correct = value === question.answer;
     if (correct) {
       setFeedback('player');
       setPlayerScore(s => s + 1);
       advanceQuestion(true, false);
     } else {
       setFeedback('bot');
-      // Wrong answer = bot gets a chance (50% it gets it right)
       const botGetsIt = Math.random() < 0.6;
       if (botGetsIt) setBotScore(s => s + 1);
       advanceQuestion(false, botGetsIt);
@@ -161,9 +152,12 @@ export default function VsBotMode({ subject, difficulty, onFinish, onBack }: Pro
         <div className="flex items-center gap-2 p-3 rounded-lg bg-card border border-border flex-1 ml-2">
           <span className="text-lg">🤖</span>
           <div>
-            <p className="text-xs text-muted-foreground font-mono">Bot</p>
+            <p className="text-xs text-muted-foreground font-mono truncate max-w-[100px]">{opponent.name}</p>
             <p className="text-xl font-mono font-bold text-destructive">{botScore}</p>
           </div>
+          <span className="text-xs font-mono ml-auto" style={{ color: opponentTier.color }}>
+            {opponent.elo}
+          </span>
         </div>
       </div>
 
@@ -215,35 +209,14 @@ export default function VsBotMode({ subject, difficulty, onFinish, onBack }: Pro
               {question.question}
             </pre>
 
-            <form onSubmit={handleSubmit} className="flex gap-3">
-              <input
-                ref={inputRef}
-                type="number"
-                step="any"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Beat the bot!"
-                className="flex-1 bg-muted border border-border rounded-md px-4 py-3 font-mono text-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                disabled={feedback !== null}
-              />
-              <button
-                type="submit"
-                disabled={feedback !== null || !input}
-                className="px-6 py-3 rounded-md bg-primary text-primary-foreground font-display font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
-              >
-                →
-              </button>
-            </form>
-
-            {feedback && (
-              <motion.p
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-3 text-muted-foreground font-mono text-sm"
-              >
-                Answer: {question.answer}
-              </motion.p>
-            )}
+            <MultipleChoice
+              choices={question.choices}
+              onSelect={handleSelect}
+              disabled={feedback !== null}
+              selected={selected}
+              correctAnswer={question.answer}
+              showResult={feedback !== null}
+            />
           </div>
         </motion.div>
       </AnimatePresence>

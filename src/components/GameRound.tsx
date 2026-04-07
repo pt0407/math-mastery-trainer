@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { generateQuestion, Subject, subjectInfo, Question } from "@/lib/questions";
 import { Difficulty, DIFFICULTY_INFO } from "@/lib/rankings";
+import MultipleChoice from "./MultipleChoice";
 
 interface Props {
   subject: Subject;
@@ -15,17 +16,12 @@ const ROUND_QUESTIONS = 10;
 export default function GameRound({ subject, difficulty, onFinish, onBack }: Props) {
   const [qIndex, setQIndex] = useState(0);
   const [question, setQuestion] = useState<Question>(() => generateQuestion(subject, difficulty));
-  const [input, setInput] = useState("");
   const [score, setScore] = useState(0);
   const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
   const [startTime, setStartTime] = useState(Date.now());
   const [times, setTimes] = useState<number[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
   const info = subjectInfo[subject];
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, [qIndex]);
 
   const next = useCallback((correct: boolean) => {
     const elapsed = (Date.now() - startTime) / 1000;
@@ -41,7 +37,7 @@ export default function GameRound({ subject, difficulty, onFinish, onBack }: Pro
     setTimeout(() => {
       setQuestion(generateQuestion(subject, difficulty));
       setQIndex(q => q + 1);
-      setInput("");
+      setSelected(null);
       setFeedback(null);
       setStartTime(Date.now());
       setTimes(newTimes);
@@ -49,12 +45,10 @@ export default function GameRound({ subject, difficulty, onFinish, onBack }: Pro
     }, 600);
   }, [startTime, times, score, qIndex, subject, difficulty, onFinish]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const parsed = parseFloat(input);
-    if (isNaN(parsed)) return;
-
-    const correct = parsed === question.answer;
+  const handleSelect = (value: number) => {
+    if (feedback) return;
+    setSelected(value);
+    const correct = value === question.answer;
     setFeedback(correct ? 'correct' : 'wrong');
     if (correct) setScore(s => s + 1);
     next(correct);
@@ -107,35 +101,14 @@ export default function GameRound({ subject, difficulty, onFinish, onBack }: Pro
               {question.question}
             </pre>
 
-            <form onSubmit={handleSubmit} className="flex gap-3">
-              <input
-                ref={inputRef}
-                type="number"
-                step="any"
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Your answer"
-                className="flex-1 bg-muted border border-border rounded-md px-4 py-3 font-mono text-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                disabled={feedback !== null}
-              />
-              <button
-                type="submit"
-                disabled={feedback !== null || !input}
-                className="px-6 py-3 rounded-md bg-primary text-primary-foreground font-display font-semibold hover:opacity-90 transition-opacity disabled:opacity-40"
-              >
-                →
-              </button>
-            </form>
-
-            {feedback === 'wrong' && (
-              <motion.p
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-3 text-destructive font-mono text-sm"
-              >
-                Answer: {question.answer}
-              </motion.p>
-            )}
+            <MultipleChoice
+              choices={question.choices}
+              onSelect={handleSelect}
+              disabled={feedback !== null}
+              selected={selected}
+              correctAnswer={question.answer}
+              showResult={feedback !== null}
+            />
           </div>
         </motion.div>
       </AnimatePresence>
