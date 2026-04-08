@@ -13,7 +13,7 @@ interface Props {
 }
 
 const subjects: Subject[] = ['basic', 'algebra', 'algebra2', 'geometry', 'chemistry'];
-const difficulties: Difficulty[] = ['easy', 'medium', 'hard'];
+const difficulties: Difficulty[] = ['easy', 'medium', 'hard', 'extreme'];
 const modes: { key: GameMode; label: string; emoji: string; desc: string }[] = [
   { key: 'practice', label: 'Practice', emoji: '🎯', desc: 'Solo rounds for points' },
   { key: 'vsbot', label: 'VS Bot', emoji: '🤖', desc: 'Race against AI' },
