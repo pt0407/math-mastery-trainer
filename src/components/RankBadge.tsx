@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { getRank, getNextRankProgress, calculateSkillRating, PlayerStats, RANKS } from "@/lib/rankings";
+import { getRank, getNextRankProgress, PlayerStats, RANKS } from "@/lib/rankings";
 
 interface Props {
   stats: PlayerStats;
@@ -10,7 +10,6 @@ export default function RankBadge({ stats, compact }: Props) {
   const { rank, prestige } = getRank(stats);
   const info = RANKS[rank];
   const progress = getNextRankProgress(stats);
-  const skill = calculateSkillRating(stats);
   const pct = progress.needed > 0 ? Math.min(100, (progress.current / progress.needed) * 100) : 100;
 
   if (compact) {
@@ -18,9 +17,7 @@ export default function RankBadge({ stats, compact }: Props) {
       <div className="flex items-center gap-1.5 text-sm">
         <span>{info.emoji}</span>
         <span className="font-display font-semibold" style={{ color: info.color }}>{info.label}</span>
-        {prestige > 0 && (
-          <span className="text-xs font-mono text-accent">P{prestige}</span>
-        )}
+        {prestige > 0 && <span className="text-xs font-mono text-accent">P{prestige}</span>}
       </div>
     );
   }
@@ -42,10 +39,9 @@ export default function RankBadge({ stats, compact }: Props) {
               </span>
             )}
           </div>
-          <span className="text-xs text-muted-foreground font-mono">Skill: {skill}</span>
+          <span className="text-xs text-muted-foreground font-mono">{stats.totalPoints} pts</span>
         </div>
       </div>
-      {/* Progress bar */}
       <div className="w-full h-1.5 bg-secondary rounded-full overflow-hidden">
         <motion.div
           className="h-full rounded-full"

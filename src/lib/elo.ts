@@ -32,7 +32,7 @@ const DEFAULT_MODE_STATS: ModeStats = {
 };
 
 const DEFAULT_PROFILE: PlayerProfile = {
-  elo: { practice: 1000, vsbot: 1000, tournament: 1000 },
+  elo: { practice: 100, vsbot: 100, tournament: 100 },
   modeStats: {
     practice: { ...DEFAULT_MODE_STATS },
     vsbot: { ...DEFAULT_MODE_STATS },
@@ -69,14 +69,13 @@ export function saveProfile(p: PlayerProfile) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(p));
 }
 
-// ELO calculation
 const K_BASE = 32;
 
 export function calculateEloChange(
   playerElo: number,
   opponentElo: number,
   won: boolean,
-  performanceMultiplier = 1 // based on speed/accuracy
+  performanceMultiplier = 1
 ): number {
   const expected = 1 / (1 + Math.pow(10, (opponentElo - playerElo) / 400));
   const actual = won ? 1 : 0;
@@ -85,23 +84,21 @@ export function calculateEloChange(
 }
 
 export function getPerformanceMultiplier(
-  accuracy: number, // 0-1
+  accuracy: number,
   avgTimeSec: number,
 ): number {
-  // Speed factor: faster = higher multiplier (max 1.5 at <2s, min 0.5 at >10s)
   const speedFactor = Math.max(0.5, Math.min(1.5, 1.5 - (avgTimeSec - 2) * 0.125));
-  // Accuracy factor: 1.0 at 100%, 0.3 at 0%
   const accFactor = 0.3 + accuracy * 0.7;
   return speedFactor * accFactor;
 }
 
 export function getEloTier(elo: number): { label: string; emoji: string; color: string } {
-  if (elo < 600) return { label: 'Beginner', emoji: '🌱', color: 'hsl(120 40% 45%)' };
-  if (elo < 800) return { label: 'Novice', emoji: '🥉', color: 'hsl(30 60% 50%)' };
-  if (elo < 1000) return { label: 'Apprentice', emoji: '⚔️', color: 'hsl(220 10% 70%)' };
-  if (elo < 1200) return { label: 'Skilled', emoji: '🥈', color: 'hsl(220 30% 75%)' };
-  if (elo < 1500) return { label: 'Expert', emoji: '🥇', color: 'hsl(45 90% 55%)' };
-  if (elo < 1800) return { label: 'Master', emoji: '💎', color: 'hsl(200 80% 65%)' };
-  if (elo < 2200) return { label: 'Grandmaster', emoji: '👑', color: 'hsl(280 70% 60%)' };
+  if (elo < 200) return { label: 'Beginner', emoji: '🌱', color: 'hsl(120 40% 45%)' };
+  if (elo < 400) return { label: 'Novice', emoji: '🥉', color: 'hsl(30 60% 50%)' };
+  if (elo < 600) return { label: 'Apprentice', emoji: '⚔️', color: 'hsl(220 10% 70%)' };
+  if (elo < 800) return { label: 'Skilled', emoji: '🥈', color: 'hsl(220 30% 75%)' };
+  if (elo < 1000) return { label: 'Expert', emoji: '🥇', color: 'hsl(45 90% 55%)' };
+  if (elo < 1300) return { label: 'Master', emoji: '💎', color: 'hsl(200 80% 65%)' };
+  if (elo < 1600) return { label: 'Grandmaster', emoji: '👑', color: 'hsl(280 70% 60%)' };
   return { label: 'Legend', emoji: '🏆', color: 'hsl(0 80% 55%)' };
 }

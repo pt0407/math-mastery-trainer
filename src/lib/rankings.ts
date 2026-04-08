@@ -1,5 +1,5 @@
 export type Rank = 'bronze' | 'silver' | 'gold' | 'platinum';
-export type Difficulty = 'easy' | 'medium' | 'hard';
+export type Difficulty = 'easy' | 'medium' | 'hard' | 'extreme';
 
 export interface RankInfo {
   label: string;
@@ -16,7 +16,7 @@ export const RANKS: Record<Rank, RankInfo> = {
 };
 
 export const RANK_ORDER: Rank[] = ['bronze', 'silver', 'gold', 'platinum'];
-const PRESTIGE_THRESHOLD = 3500; // points to reach platinum
+const PRESTIGE_THRESHOLD = 3500;
 
 export interface PlayerStats {
   totalPoints: number;
@@ -30,14 +30,9 @@ export interface PlayerStats {
 }
 
 const DEFAULT_STATS: PlayerStats = {
-  totalPoints: 0,
-  prestige: 0,
-  gamesPlayed: 0,
-  questionsAnswered: 0,
-  correctAnswers: 0,
-  totalTimeSec: 0,
-  botWins: 0,
-  botLosses: 0,
+  totalPoints: 0, prestige: 0, gamesPlayed: 0,
+  questionsAnswered: 0, correctAnswers: 0, totalTimeSec: 0,
+  botWins: 0, botLosses: 0,
 };
 
 const STORAGE_KEY = 'mathsprint_stats';
@@ -55,7 +50,6 @@ export function saveStats(stats: PlayerStats) {
 }
 
 export function getEffectivePoints(stats: PlayerStats): number {
-  // Points within current prestige cycle
   return stats.totalPoints - stats.prestige * PRESTIGE_THRESHOLD;
 }
 
@@ -73,7 +67,6 @@ export function getNextRankProgress(stats: PlayerStats): { current: number; need
   const { rank } = getRank(stats);
   const idx = RANK_ORDER.indexOf(rank);
   if (idx >= RANK_ORDER.length - 1) {
-    // At platinum - progress to prestige
     return { current: pts, needed: PRESTIGE_THRESHOLD, nextRank: null };
   }
   const next = RANK_ORDER[idx + 1];
@@ -88,27 +81,17 @@ export function checkPrestige(stats: PlayerStats): PlayerStats {
   return stats;
 }
 
-export function calculateSkillRating(stats: PlayerStats): number {
-  if (stats.questionsAnswered === 0) return 0;
-  const accuracy = stats.correctAnswers / stats.questionsAnswered;
-  const avgSpeed = stats.totalTimeSec / stats.questionsAnswered;
-  const speedScore = Math.max(0, 1 - avgSpeed / 15); // 15s = 0 score
-  const botWinRate = stats.botWins + stats.botLosses > 0
-    ? stats.botWins / (stats.botWins + stats.botLosses) : 0;
-  // Weighted composite: 40% accuracy, 30% speed, 30% bot wins
-  return Math.round((accuracy * 40 + speedScore * 30 + botWinRate * 30) * 10);
-}
-
 export function calculatePoints(score: number, total: number, avgTime: number, difficulty: Difficulty, botWin?: boolean): number {
-  const diffMultiplier = difficulty === 'easy' ? 1 : difficulty === 'medium' ? 1.5 : 2.5;
+  const diffMultiplier = difficulty === 'easy' ? 1 : difficulty === 'medium' ? 1.5 : difficulty === 'hard' ? 2.5 : 4;
   const basePoints = score * 10 * diffMultiplier;
-  const speedBonus = Math.max(0, Math.round((5 - avgTime) * 3 * score)); // bonus for <5s avg
+  const speedBonus = Math.max(0, Math.round((5 - avgTime) * 3 * score));
   const botBonus = botWin ? 50 * diffMultiplier : 0;
   return Math.round(basePoints + speedBonus + botBonus);
 }
 
 export const DIFFICULTY_INFO: Record<Difficulty, { label: string; emoji: string; description: string }> = {
-  easy:   { label: 'Easy',   emoji: '🟢', description: 'Smaller numbers, simpler problems' },
-  medium: { label: 'Medium', emoji: '🟡', description: 'Standard difficulty' },
-  hard:   { label: 'Hard',   emoji: '🔴', description: 'Larger numbers, complex problems' },
+  easy:    { label: 'Easy',    emoji: '🟢', description: 'Smaller numbers, simpler problems' },
+  medium:  { label: 'Medium',  emoji: '🟡', description: 'Standard difficulty' },
+  hard:    { label: 'Hard',    emoji: '🔴', description: 'Larger numbers, complex problems' },
+  extreme: { label: 'Extreme', emoji: '💀', description: 'Maximum difficulty, brutal numbers' },
 };

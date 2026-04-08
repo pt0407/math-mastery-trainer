@@ -110,6 +110,13 @@ export default function TournamentMode({ subject, difficulty, onFinish, onBack }
     };
   }, [qIndex, phase, opponent]);
 
+  // Call onFinish when tournament reaches results phase
+  useEffect(() => {
+    if (phase === 'results' && tournament) {
+      onFinish(tournament.playerWins, tournament.playerLosses, tournament.format);
+    }
+  }, [phase]);
+
   const advanceMatchQuestion = useCallback((playerWon: boolean, botWon?: boolean) => {
     const elapsed = (Date.now() - startTime) / 1000;
     const newTimes = [...times, elapsed];
@@ -385,6 +392,7 @@ export default function TournamentMode({ subject, difficulty, onFinish, onBack }
   }
 
   // RESULTS PHASE
+
   if (phase === 'results' && tournament) {
     const won = tournament.playerWins > tournament.playerLosses;
     return (
