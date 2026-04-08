@@ -384,12 +384,7 @@ export default function TournamentMode({ subject, difficulty, onFinish, onBack }
     );
   }
 
-  // RESULTS PHASE - call onFinish to update ELO
-  useEffect(() => {
-    if (phase === 'results' && tournament) {
-      onFinish(tournament.playerWins, tournament.playerLosses, tournament.format);
-    }
-  }, [phase]);
+  // RESULTS PHASE
 
   if (phase === 'results' && tournament) {
     const won = tournament.playerWins > tournament.playerLosses;
