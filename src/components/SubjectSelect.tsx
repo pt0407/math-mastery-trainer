@@ -10,6 +10,8 @@ export type GameMode = 'practice' | 'vsbot' | 'stepbystep' | 'tournament';
 interface Props {
   onStart: (subject: Subject, difficulty: Difficulty, mode: GameMode) => void;
   onStats: () => void;
+  onLogout?: () => void;
+  username?: string;
 }
 
 const subjects: Subject[] = ['basic', 'algebra', 'algebra2', 'geometry', 'chemistry'];
@@ -21,7 +23,7 @@ const modes: { key: GameMode; label: string; emoji: string; desc: string }[] = [
   { key: 'stepbystep', label: 'Step-by-Step', emoji: '📝', desc: 'Learn the process' },
 ];
 
-export default function SubjectSelect({ onStart, onStats }: Props) {
+export default function SubjectSelect({ onStart, onStats, onLogout, username }: Props) {
   const [selectedSubject, setSelectedSubject] = useState<Subject | null>(null);
   const [difficulty, setDifficulty] = useState<Difficulty>('medium');
   const [mode, setMode] = useState<GameMode>('practice');
@@ -52,8 +54,11 @@ export default function SubjectSelect({ onStart, onStats }: Props) {
         Train your mental math. Pick a subject.
       </motion.p>
 
-      {/* Rank + Stats button */}
+      {/* User + Rank + Stats */}
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="mb-6 flex items-center gap-4">
+        {username && (
+          <span className="text-sm font-mono text-muted-foreground">👤 {username}</span>
+        )}
         <RankBadge stats={stats} />
         <button
           onClick={onStats}
@@ -61,6 +66,14 @@ export default function SubjectSelect({ onStart, onStats }: Props) {
         >
           📊 Stats
         </button>
+        {onLogout && (
+          <button
+            onClick={onLogout}
+            className="px-3 py-2 rounded-lg bg-card border border-border hover:border-destructive/50 transition-colors font-mono text-xs text-muted-foreground hover:text-destructive"
+          >
+            Logout
+          </button>
+        )}
       </motion.div>
 
       {/* ELO display */}

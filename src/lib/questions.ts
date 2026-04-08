@@ -18,7 +18,7 @@ function pick<T>(arr: T[]): T {
 }
 
 function dScale(base: number, d: Difficulty, mult = 1): number {
-  const s = d === 'easy' ? 0.5 : d === 'medium' ? 1 : 2;
+  const s = d === 'easy' ? 0.5 : d === 'medium' ? 1 : d === 'hard' ? 2 : 4;
   return Math.max(2, Math.round(base * s * mult));
 }
 
@@ -77,19 +77,19 @@ function withChoices(q: { question: string; answer: number; hint?: string }): Qu
 function generateBasicMath(d: Difficulty): Question {
   const type = rand(0, 3);
   if (type === 0) {
-    const max = d === 'easy' ? 12 : d === 'medium' ? 50 : 99;
+    const max = d === 'easy' ? 12 : d === 'medium' ? 50 : d === 'hard' ? 99 : 250;
     const a = rand(2, max), b = rand(2, max);
     return withChoices({ question: `${a} × ${b}`, answer: a * b });
   } else if (type === 1) {
-    const max = d === 'easy' ? 100 : d === 'medium' ? 500 : 999;
+    const max = d === 'easy' ? 100 : d === 'medium' ? 500 : d === 'hard' ? 999 : 5000;
     const a = rand(10, max), b = rand(10, max);
     return withChoices({ question: `${a} + ${b}`, answer: a + b });
   } else if (type === 2) {
-    const max = d === 'easy' ? 100 : d === 'medium' ? 500 : 999;
+    const max = d === 'easy' ? 100 : d === 'medium' ? 500 : d === 'hard' ? 999 : 5000;
     const a = rand(50, max), b = rand(10, a);
     return withChoices({ question: `${a} − ${b}`, answer: a - b });
   } else {
-    const bMax = d === 'easy' ? 10 : d === 'medium' ? 12 : 15;
+    const bMax = d === 'easy' ? 10 : d === 'medium' ? 12 : d === 'hard' ? 15 : 25;
     const b = rand(2, bMax), answer = rand(2, dScale(25, d));
     const a = b * answer;
     return withChoices({ question: `${a} ÷ ${b}`, answer });
